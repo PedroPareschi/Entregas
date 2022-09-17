@@ -1,5 +1,8 @@
-from enum import Enum
-from peewee import Model, CharField, ForeignKeyField, DoubleField, BooleanKeyField
+from peewee import Model, CharField, ForeignKeyField, DoubleField, PostgresqlDatabase
+
+
+db = PostgresqlDatabase(database='truckdriver', user='postgres', password='1234')
+
 
 class BaseModel(Model):
     class Meta:
@@ -12,24 +15,21 @@ class Endereco(BaseModel):
     cidade = CharField()
 
 
-class TipoVeiculo(int, Enum):
-    moto = "moto", 2
-    carro = "carro", 3
-    carreta = "carreta", 5
+class Carreteiro(BaseModel):
+    cpf = CharField()
+    nome = CharField()
+    email = CharField()
+    telefone = CharField()
+    placa = CharField()
+    veiculo_preco = DoubleField()
 
-class Usuario(BaseModel):
+
+class Solicitante(BaseModel):
     cpf = CharField()
     nome = CharField()
     email = CharField()
     telefone = CharField()
 
-class Carreteiro(Usuario):
-    placa = CharField()
-    veiculo = ForeignKeyField(TipoVeiculo)
-
-class Solicitante(Usuario):
-    ehReceptor = BooleanKeyField()
-    ehEmissor = BooleanKeyField()
 
 class Viagem(BaseModel):
     origem = ForeignKeyField(Endereco)
@@ -38,3 +38,6 @@ class Viagem(BaseModel):
     preco = DoubleField()
     pagamento = CharField()
 
+
+if db.table_exists('viagem') is not None:
+    db.create_tables(BaseModel.__subclasses__())

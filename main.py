@@ -1,12 +1,26 @@
+from enum import Enum
 import traceback
+from typing import Union
+from pydantic import BaseModel
 import services
 from http.client import HTTPException
 from fastapi import FastAPI
-from models import Endereco, TipoVeiculo
 
 app = FastAPI()
 
 
-@app.post("/passageiro/{id_passageiro}/")
-def simular_viagem(origem: Endereco, destino: Endereco, carro: TipoVeiculo, id_passageiro: int):
-    services.simular_viagem(origem, destino, carro, id_passageiro)
+class TipoVeiculo(str, Enum):
+    moto = 'moto'
+    carro = 'carro'
+    carreta = 'carreta'
+
+
+class Endereco(BaseModel):
+    rua: str
+    numero: str
+    cidade: str
+
+
+@app.post("/passageiro/{id_passageiro}/simular-viagem")
+def simular_viagem(origem: Endereco, destino: Endereco, tipo_veiculo: TipoVeiculo, id_passageiro: int):
+    return services.simular_viagem(origem, destino, tipo_veiculo.value, id_passageiro)
