@@ -1,11 +1,12 @@
 
 from http import client
-from models import Endereco
+from models import Endereco, Solicitante, Viagem
+from dto import EnderecoDTO
 import geocoder
 import requests
 
 
-def simular_viagem(origem: Endereco, destino: Endereco, tipo_veiculo_nome: str, id_passageiro: int):
+def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome):
     g = geocoder.osm(origem.rua + " " + origem.numero + " " + origem.cidade)
     lonOrigem = g.osm['x']
     latOrigem = g.osm['y']
@@ -16,7 +17,6 @@ def simular_viagem(origem: Endereco, destino: Endereco, tipo_veiculo_nome: str, 
     latDestino = g.osm['y']
 
     api_key = ''
-
 
     headers = {
         'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
@@ -43,3 +43,18 @@ def simular_viagem(origem: Endereco, destino: Endereco, tipo_veiculo_nome: str, 
         'distancia': "{:.1f}".format(distancia),
         'veiculo': tipo_veiculo_nome
     }
+
+
+def confirmar_viagem(origemDTO: EnderecoDTO, destinoDTO: EnderecoDTO, tipo_veiculo_nome: str, id_solicitante: int):
+    json_viagem = simular_viagem(origemDTO, destinoDTO, tipo_veiculo_nome)
+    origem = Endereco.get_or_create(
+        rua=origemDTO.rua, numero=origemDTO.numero, cidade=origemDTO.cidade)
+    destino = Endereco.get_or_create(
+        rua=destinoDTO.rua, numero=destinoDTO.numero, cidade=destinoDTO.cidade)
+    solicitante = Solicitante.get_by_id(id_solicitante)
+    preco = json_viagem['preco']
+    viagem = Viagem(origem=origem, destino=destino, solicitante=solicitante,
+                    tipo_veiculo=tipo_veiculo_nome, preco=preco)
+    origem.save()
+    destino.save()
+    viagem.save()

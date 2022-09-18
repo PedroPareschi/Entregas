@@ -1,7 +1,8 @@
 from peewee import Model, CharField, ForeignKeyField, DoubleField, PostgresqlDatabase
 
 
-db = PostgresqlDatabase(database='truckdriver', user='postgres', password='1234')
+db = PostgresqlDatabase(database='truckdriver',
+                        user='postgres', password='1234')
 
 
 class BaseModel(Model):
@@ -21,7 +22,7 @@ class Carreteiro(BaseModel):
     email = CharField()
     telefone = CharField()
     placa = CharField()
-    veiculo_preco = DoubleField()
+    tipo_veiculo = CharField()
 
 
 class Solicitante(BaseModel):
@@ -34,9 +35,10 @@ class Solicitante(BaseModel):
 class Viagem(BaseModel):
     origem = ForeignKeyField(Endereco)
     destino = ForeignKeyField(Endereco)
-    carreteiro = ForeignKeyField(Carreteiro)
+    solicitante = ForeignKeyField(Solicitante)
+    carreteiro = ForeignKeyField(Carreteiro, null=True)
+    tipo_veiculo = CharField()
     preco = DoubleField()
-    pagamento = CharField()
 
 
 if db.table_exists('viagem') is not None:
