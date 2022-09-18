@@ -1,4 +1,4 @@
-
+from peewee import DoesNotExist 
 from models import Carreteiro, Endereco, Solicitante, Viagem, db
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
 from excecoes import DirecaoException, LugarNaoEncontradoException
@@ -61,12 +61,18 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome)
 
 
 def confirmar_viagem(origemDTO: EnderecoDTO, destinoDTO: EnderecoDTO, tipo_veiculo_nome: str, id_solicitante: int):
-    json_viagem = simular_viagem(origemDTO, destinoDTO, tipo_veiculo_nome)
+    try:
+        solicitante = Solicitante.get_by_id(id_solicitante)
+    except DoesNotExist as e:
+        raise e
+    try:
+        json_viagem = simular_viagem(origemDTO, destinoDTO, tipo_veiculo_nome)
+    except (ConnectionError, DirecaoException, LugarNaoEncontradoException) as e:
+        raise e
     origem = Endereco.get_or_create(
         rua=origemDTO.rua, numero=origemDTO.numero, cidade=origemDTO.cidade)
     destino = Endereco.get_or_create(
         rua=destinoDTO.rua, numero=destinoDTO.numero, cidade=destinoDTO.cidade)
-    solicitante = Solicitante.get_by_id(id_solicitante)
     preco = json_viagem['preco']
     viagem = Viagem(origem=origem[0], destino=destino[0], solicitante=solicitante,
                     tipo_veiculo=tipo_veiculo_nome, preco=float(preco))

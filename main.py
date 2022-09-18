@@ -5,6 +5,7 @@ from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
 from fastapi import FastAPI, HTTPException
 from excecoes import DirecaoException, LugarNaoEncontradoException
 from pydantic import BaseModel
+from peewee import DoesNotExist
 import services
 
 app = FastAPI()
@@ -15,17 +16,19 @@ class TipoVeiculo(str, Enum):
     carro = 'carro'
     carreta = 'carreta'
 
+
 class HTTPError(BaseModel):
     detail: str
 
+
 @app.post("/simular-viagem", responses={
-        502: {
-            "model": HTTPError
-        },
-        404: {
-            "model": HTTPError
-        }
-    })
+    502: {
+        "model": HTTPError
+    },
+    404: {
+        "model": HTTPError
+    }
+})
 def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo: TipoVeiculo):
     try:
         resposta = services.simular_viagem(origem, destino, tipo_veiculo.value)
@@ -40,9 +43,27 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo: Tipo
     return resposta
 
 
-@app.post("/solicitante/{id_solicitante}/confirmar-viagem")
+@app.post("/solicitante/{id_solicitante}/confirmar-viagem", responses={
+    502: {
+        "model": HTTPError
+    },
+    404: {
+        "model": HTTPError
+    }
+})
 def confirmar_viagem(id_solicitante: int, origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo: TipoVeiculo):
-    return services.confirmar_viagem(origem, destino, tipo_veiculo.value, id_solicitante)
+    try:
+        resposta = services.confirmar_viagem(origem, destino, tipo_veiculo.value, id_solicitante)
+    except ConnectionError as e:
+        raise HTTPException(
+            status_code=502, detail="Erro ao conectar com serviços de geolocalização, tente novamente mais tarde")
+    except LugarNaoEncontradoException as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    except DirecaoException as e:
+        raise HTTPException(status_code=e.codigo,
+                            detail="Erro ao buscar direção: " + e.message)
 
 
 @app.post("/solicitante")
