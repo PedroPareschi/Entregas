@@ -1,19 +1,30 @@
 
 from models import Carreteiro, Endereco, Solicitante, Viagem, db
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
+from excecoes import DirecaoException, LugarNaoEncontradoException
 import geocoder
 import requests
 
 
 def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome):
-    g = geocoder.osm(origem.rua + " " + origem.numero + " " + origem.cidade)
-    lonOrigem = g.osm['x']
-    latOrigem = g.osm['y']
+    enderecoOrigem = origem.rua + " " + origem.numero + " " + origem.cidade
+    enderecoDestino = destino.rua + " " + destino.numero + " " + destino.cidade
+    try:
+        g = geocoder.osm(enderecoOrigem)
+        if g.ok is False:
+            raise LugarNaoEncontradoException(enderecoOrigem)
+        lonOrigem = g.osm['x']
+        latOrigem = g.osm['y']
 
-    g = geocoder.osm(destino.rua + " " + destino.numero + " " + destino.cidade)
+        g = geocoder.osm(enderecoDestino)
 
-    lonDestino = g.osm['x']
-    latDestino = g.osm['y']
+        if g.ok is False:
+            raise LugarNaoEncontradoException(enderecoDestino)
+
+        lonDestino = g.osm['x']
+        latDestino = g.osm['y']
+    except (ConnectionError, LugarNaoEncontradoException) as e:
+        raise e
 
     api_key = ''
 
@@ -22,8 +33,13 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome)
     }
 
     request = f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={api_key}&start={lonOrigem},{latOrigem}&end={lonDestino},{latDestino}'
-
-    call = requests.get(request, headers=headers)
+    try:
+        call = requests.get(request, headers=headers)
+        if call.status_code != 200:
+            raise DirecaoException(
+                codigo=call.status_code, message=call.reason)
+    except (ConnectionError, DirecaoException) as e:
+        raise e
     resposta = call.json()
     distancia = resposta["features"][0]["properties"]["summary"]["distance"]
 
@@ -36,8 +52,8 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome)
     distancia = distancia/1000
     preco = distancia * tipo_veiculo_value
     return {
-        'origem': origem.rua + ' ' + origem.numero + ',' + origem.cidade,
-        'destino': destino.rua + ' ' + destino.numero + ',' + destino.cidade,
+        'origem': enderecoOrigem,
+        'destino': enderecoDestino,
         'preco': "{:.2f}".format(preco),
         'distancia': "{:.1f}".format(distancia),
         'veiculo': tipo_veiculo_nome

@@ -1,8 +1,10 @@
+from email import message
 from enum import Enum
 from typing import Union
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
-from http.client import HTTPException
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from excecoes import DirecaoException, LugarNaoEncontradoException
+from pydantic import BaseModel
 import services
 
 app = FastAPI()
@@ -13,10 +15,29 @@ class TipoVeiculo(str, Enum):
     carro = 'carro'
     carreta = 'carreta'
 
+class HTTPError(BaseModel):
+    detail: str
 
-@app.post("/simular-viagem")
+@app.post("/simular-viagem", responses={
+        502: {
+            "model": HTTPError
+        },
+        404: {
+            "model": HTTPError
+        }
+    })
 def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo: TipoVeiculo):
-    return services.simular_viagem(origem, destino, tipo_veiculo.value)
+    try:
+        resposta = services.simular_viagem(origem, destino, tipo_veiculo.value)
+    except ConnectionError as e:
+        raise HTTPException(
+            status_code=502, detail="Erro ao conectar com serviços de geolocalização, tente novamente mais tarde")
+    except LugarNaoEncontradoException as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except DirecaoException as e:
+        raise HTTPException(status_code=e.codigo,
+                            detail="Erro ao buscar direção: " + e.message)
+    return resposta
 
 
 @app.post("/solicitante/{id_solicitante}/confirmar-viagem")
@@ -47,6 +68,7 @@ def aceitar_viagem(carreteiro_id: int, viagem_id: int):
 @app.delete("/solicitante/{solicitante_id}/viagem/{viagem_id}")
 def cancelar_viagem_solicitante(solicitante_id: int, viagem_id: int):
     return services.cancelar_viagem_solicitante(solicitante_id, viagem_id)
+
 
 @app.delete("/carreteiro/{carreteiro_id}/viagens/{viagem_id}")
 def cancelar_viagem_carreteiro(carreteiro_id: int, viagem_id: int):
