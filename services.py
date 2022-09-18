@@ -89,6 +89,10 @@ def aceitar_viagem(carreteiro_id: int, viagem_id: int):
     return cursor.fetchall()
 
 
-def cancelar_viagem(solicitante_id: int, viagem_id: int):
-    q = Viagem.delete_by_id(viagem_id)
-    return q.execute()
+def cancelar_viagem_solicitante(solicitante_id: int, viagem_id: int):
+    Viagem.delete_by_id(viagem_id)
+
+
+def cancelar_viagem_carreteiro(solicitante_id: int, viagem_id: int):
+    db.execute_sql(
+        'UPDATE viagem SET carreteiro_id = NULL WHERE id = %s', [viagem_id])
