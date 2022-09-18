@@ -40,7 +40,7 @@ def viagens_proximas(carreteiro_id: int):
 
 
 @app.post("/carreteiro/{carreteiro_id}/viagens-proximas/{viagem_id}/aceitar")
-def aceitar_viagens_proximas(carreteiro_id: int, viagem_id: int):
+def aceitar_viagem(carreteiro_id: int, viagem_id: int):
     return services.aceitar_viagem(carreteiro_id, viagem_id)
 
 

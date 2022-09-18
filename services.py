@@ -71,14 +71,22 @@ def cadastrar_carreteiro(carreteiroDTO: CarreteiroDTO, tipoVeiculo: str):
 
 def viagens_proximas(carreteiro_id: int):
     carreteiro = Carreteiro.get_by_id(carreteiro_id)
-    cursor = db.execute_sql('SELECT v.id, e.rua, v.preco, s.nome from viagem v left join endereco e on e.id = v.origem_id left join solicitante s on s.id = v.solicitante_id  WHERE v.tipo_veiculo = %s AND e.cidade = %s AND v.carreteiro_id is NULL', (carreteiro.tipo_veiculo, carreteiro.cidade))
+    cursor = db.execute_sql('SELECT v.id, e.rua, v.preco, s.nome from viagem v \
+        left join endereco e on e.id = v.origem_id \
+        left join solicitante s on s.id = v.solicitante_id \
+        WHERE v.tipo_veiculo = %s AND e.cidade = %s AND v.carreteiro_id is NULL',
+                            (carreteiro.tipo_veiculo, carreteiro.cidade))
     return cursor.fetchall()
 
-def aceitar_viagens_proximas(carreteiro_id: int, viagem_id: int):
-    q = Viagem.update({Viagem.carreteiro: carreteiro_id}
-                      ).where(Viagem.id == viagem_id)
 
-    return db.execute_sql('')
+def aceitar_viagem(carreteiro_id: int, viagem_id: int):
+    cursor = db.execute_sql('with v as (UPDATE viagem SET carreteiro_id = %s WHERE id = %s returning *) \
+        select v.preco, s.nome, s.telefone, o.rua as origem_rua, o.numero as origem_numero, \
+        o.cidade as origem_cidade, d.rua as destino_rua, d.numero as destino_numero, \
+        d.cidade as destino_cidade from v inner join solicitante s on s.id = v.solicitante_id \
+        inner join endereco o ON o.id = v.origem_id inner join endereco d on d.id = v.destino_id',
+                            (carreteiro_id, viagem_id))
+    return cursor.fetchall()
 
 
 def cancelar_viagem(solicitante_id: int, viagem_id: int):
