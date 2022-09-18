@@ -1,8 +1,9 @@
+from enum import unique
 from peewee import Model, CharField, ForeignKeyField, DoubleField, PostgresqlDatabase
 
 
 db = PostgresqlDatabase(database='truckdriver',
-                        user='postgres', password='1234')
+                        user='postgres', password='1234', autorollback=True)
 
 
 class BaseModel(Model):
@@ -17,7 +18,7 @@ class Endereco(BaseModel):
 
 
 class Carreteiro(BaseModel):
-    cpf = CharField()
+    cpf = CharField(unique=True, max_length=11)
     nome = CharField()
     email = CharField()
     telefone = CharField()
@@ -27,7 +28,7 @@ class Carreteiro(BaseModel):
 
 
 class Solicitante(BaseModel):
-    cpf = CharField()
+    cpf = CharField(unique=True, max_length=11)
     nome = CharField()
     email = CharField()
     telefone = CharField()

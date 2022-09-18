@@ -1,11 +1,12 @@
 from email import message
 from enum import Enum
 from typing import Union
+from urllib import response
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
 from fastapi import FastAPI, HTTPException
-from excecoes import DirecaoException, LugarNaoEncontradoException
+from excecoes import CPFException, DirecaoException, LugarNaoEncontradoException
 from pydantic import BaseModel
-from peewee import DoesNotExist
+from peewee import DoesNotExist, IntegrityError
 import services
 
 app = FastAPI()
@@ -53,7 +54,8 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo: Tipo
 })
 def confirmar_viagem(id_solicitante: int, origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo: TipoVeiculo):
     try:
-        resposta = services.confirmar_viagem(origem, destino, tipo_veiculo.value, id_solicitante)
+        resposta = services.confirmar_viagem(
+            origem, destino, tipo_veiculo.value, id_solicitante)
     except ConnectionError as e:
         raise HTTPException(
             status_code=502, detail="Erro ao conectar com serviços de geolocalização, tente novamente mais tarde")
@@ -64,16 +66,37 @@ def confirmar_viagem(id_solicitante: int, origem: EnderecoDTO, destino: Endereco
     except DirecaoException as e:
         raise HTTPException(status_code=e.codigo,
                             detail="Erro ao buscar direção: " + e.message)
+    return resposta
 
 
-@app.post("/solicitante")
+@app.post("/solicitante", responses={
+    400: {
+        "model": HTTPError
+    }})
 def cadastrar_solicitante(solicitante: SolicitanteDTO):
-    return services.cadastrar_solicitante(solicitante)
+    try:
+        resposta = services.cadastrar_solicitante(solicitante)
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail="CPF deve ser único")
+    except CPFException as e:
+        raise HTTPException(
+            status_code=400, detail=e.message)
+    return resposta
 
 
-@app.post("/carreteiro")
+@app.post("/carreteiro", responses={
+    400: {
+        "model": HTTPError
+    }})
 def cadastrar_carreteiro(carreteiro: CarreteiroDTO, tipoVeiculo: TipoVeiculo):
-    return services.cadastrar_carreteiro(carreteiro, tipoVeiculo.value)
+    try:
+        resposta = services.cadastrar_carreteiro(carreteiro, tipoVeiculo.value)
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail="CPF deve ser único")
+    except CPFException as e:
+        raise HTTPException(
+            status_code=400, detail=e.message)
+    return resposta
 
 
 @app.get("/carreteiro/{carreteiro_id}/viagens")

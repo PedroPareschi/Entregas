@@ -1,7 +1,7 @@
-from peewee import DoesNotExist 
+from peewee import DoesNotExist, IntegrityError
 from models import Carreteiro, Endereco, Solicitante, Viagem, db
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
-from excecoes import DirecaoException, LugarNaoEncontradoException
+from excecoes import CPFException, DirecaoException, LugarNaoEncontradoException
 import geocoder
 import requests
 
@@ -76,19 +76,32 @@ def confirmar_viagem(origemDTO: EnderecoDTO, destinoDTO: EnderecoDTO, tipo_veicu
     preco = json_viagem['preco']
     viagem = Viagem(origem=origem[0], destino=destino[0], solicitante=solicitante,
                     tipo_veiculo=tipo_veiculo_nome, preco=float(preco))
-    return viagem.save()
+    viagem.save()
+    return viagem
 
 
 def cadastrar_solicitante(solicitanteDTO: SolicitanteDTO):
-    solicitante = Solicitante(cpf=solicitanteDTO.cpf, nome=solicitanteDTO.nome,
-                              email=solicitanteDTO.email, telefone=solicitanteDTO.telefone)
-    return solicitante.save()
+    try:
+        if len(solicitanteDTO.cpf) != 11 or solicitanteDTO.cpf.isdecimal() is False:
+            raise CPFException
+        solicitante = Solicitante(cpf=solicitanteDTO.cpf, nome=solicitanteDTO.nome,
+                                  email=solicitanteDTO.email, telefone=solicitanteDTO.telefone)
+        solicitante.save()
+    except (IntegrityError, CPFException) as e:
+        raise e
+    return solicitante
 
 
 def cadastrar_carreteiro(carreteiroDTO: CarreteiroDTO, tipoVeiculo: str):
-    carreteiro = Carreteiro(cpf=carreteiroDTO.cpf, nome=carreteiroDTO.nome, email=carreteiroDTO.email,
-                            telefone=carreteiroDTO.telefone, placa=carreteiroDTO.placa, cidade=carreteiroDTO.cidade, tipo_veiculo=tipoVeiculo)
-    return carreteiro.save()
+    try:
+        if len(carreteiroDTO.cpf) != 11 or carreteiroDTO.cpf.isdecimal() is False:
+            raise CPFException
+        carreteiro = Carreteiro(cpf=carreteiroDTO.cpf, nome=carreteiroDTO.nome, email=carreteiroDTO.email,
+                                telefone=carreteiroDTO.telefone, placa=carreteiroDTO.placa, cidade=carreteiroDTO.cidade, tipo_veiculo=tipoVeiculo)
+        carreteiro.save()
+    except (IntegrityError, CPFException) as e:
+        raise e
+    return carreteiro
 
 
 def viagens_proximas(carreteiro_id: int):
