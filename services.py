@@ -105,7 +105,10 @@ def cadastrar_carreteiro(carreteiroDTO: CarreteiroDTO, tipoVeiculo: str):
 
 
 def viagens_proximas(carreteiro_id: int):
-    carreteiro = Carreteiro.get_by_id(carreteiro_id)
+    try:
+        carreteiro = Carreteiro.get_by_id(carreteiro_id)
+    except DoesNotExist as e:
+        raise e
     cursor = db.execute_sql('SELECT v.id, e.rua, v.preco, s.nome from viagem v \
         left join endereco e on e.id = v.origem_id \
         left join solicitante s on s.id = v.solicitante_id \

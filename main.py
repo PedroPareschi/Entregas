@@ -99,9 +99,15 @@ def cadastrar_carreteiro(carreteiro: CarreteiroDTO, tipoVeiculo: TipoVeiculo):
     return resposta
 
 
-@app.get("/carreteiro/{carreteiro_id}/viagens")
+@app.get("/carreteiro/{carreteiro_id}/viagens", responses={
+    404: {
+        "model": HTTPError
+    }})
 def viagens_proximas(carreteiro_id: int):
-    return services.viagens_proximas(carreteiro_id)
+    try:
+        lista = services.viagens_proximas(carreteiro_id)
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
 
 @app.post("/carreteiro/{carreteiro_id}/viagens/{viagem_id}/aceitar")
