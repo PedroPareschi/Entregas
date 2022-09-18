@@ -1,10 +1,9 @@
 from enum import Enum
-import traceback
 from typing import Union
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
-import services
 from http.client import HTTPException
 from fastapi import FastAPI
+import services
 
 app = FastAPI()
 
@@ -31,12 +30,12 @@ def cadastrar_solicitante(solicitante: SolicitanteDTO):
 
 
 @app.post("/carreteiro")
-def cadastrar_carreteiro(carreteiro: CarreteiroDTO):
-    return services.cadastrar_carreteiro(carreteiro)
+def cadastrar_carreteiro(carreteiro: CarreteiroDTO, tipoVeiculo: TipoVeiculo):
+    return services.cadastrar_carreteiro(carreteiro, tipoVeiculo.value)
 
 
 @app.get("/carreteiro/{carreteiro_id}/viagens-proximas")
-def ver_viagens_proximas(carreteiro_id: int):
+def viagens_proximas(carreteiro_id: int):
     return services.viagens_proximas(carreteiro_id)
 
 

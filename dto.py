@@ -20,4 +20,4 @@ class CarreteiroDTO(BaseModel):
     email: str
     telefone: str
     placa: str
-    tipo_veiculo: str
+    cidade: str

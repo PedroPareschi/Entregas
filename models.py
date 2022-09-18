@@ -23,6 +23,7 @@ class Carreteiro(BaseModel):
     telefone = CharField()
     placa = CharField()
     tipo_veiculo = CharField()
+    cidade = CharField()
 
 
 class Solicitante(BaseModel):

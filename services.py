@@ -1,7 +1,6 @@
 
-from http import client
-from models import Endereco, Solicitante, Viagem
-from dto import EnderecoDTO
+from models import Carreteiro, Endereco, Solicitante, Viagem, db
+from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
 import geocoder
 import requests
 
@@ -53,8 +52,35 @@ def confirmar_viagem(origemDTO: EnderecoDTO, destinoDTO: EnderecoDTO, tipo_veicu
         rua=destinoDTO.rua, numero=destinoDTO.numero, cidade=destinoDTO.cidade)
     solicitante = Solicitante.get_by_id(id_solicitante)
     preco = json_viagem['preco']
-    viagem = Viagem(origem=origem, destino=destino, solicitante=solicitante,
-                    tipo_veiculo=tipo_veiculo_nome, preco=preco)
-    origem.save()
-    destino.save()
-    viagem.save()
+    viagem = Viagem(origem=origem[0], destino=destino[0], solicitante=solicitante,
+                    tipo_veiculo=tipo_veiculo_nome, preco=float(preco))
+    return viagem.save()
+
+
+def cadastrar_solicitante(solicitanteDTO: SolicitanteDTO):
+    solicitante = Solicitante(cpf=solicitanteDTO.cpf, nome=solicitanteDTO.nome,
+                              email=solicitanteDTO.email, telefone=solicitanteDTO.telefone)
+    return solicitante.save()
+
+
+def cadastrar_carreteiro(carreteiroDTO: CarreteiroDTO, tipoVeiculo: str):
+    carreteiro = Carreteiro(cpf=carreteiroDTO.cpf, nome=carreteiroDTO.nome, email=carreteiroDTO.email,
+                            telefone=carreteiroDTO.telefone, placa=carreteiroDTO.placa, cidade=carreteiroDTO.cidade, tipo_veiculo=tipoVeiculo)
+    return carreteiro.save()
+
+
+def viagens_proximas(carreteiro_id: int):
+    carreteiro = Carreteiro.get_by_id(carreteiro_id)
+    cursor = db.execute_sql('SELECT v.id, e.rua, v.preco, s.nome from viagem v left join endereco e on e.id = v.origem_id left join solicitante s on s.id = v.solicitante_id  WHERE v.tipo_veiculo = %s AND e.cidade = %s AND v.carreteiro_id is NULL', (carreteiro.tipo_veiculo, carreteiro.cidade))
+    return cursor.fetchall()
+
+def aceitar_viagens_proximas(carreteiro_id: int, viagem_id: int):
+    q = Viagem.update({Viagem.carreteiro: carreteiro_id}
+                      ).where(Viagem.id == viagem_id)
+
+    return db.execute_sql('')
+
+
+def cancelar_viagem(solicitante_id: int, viagem_id: int):
+    q = Viagem.delete_by_id(viagem_id)
+    return q.execute()
