@@ -1,7 +1,9 @@
+from email import message
+from tkinter import E
 from peewee import DoesNotExist, IntegrityError
 from models import Carreteiro, Endereco, Solicitante, Viagem, db
 from dto import CarreteiroDTO, EnderecoDTO, SolicitanteDTO
-from excecoes import CPFException, DirecaoException, LugarNaoEncontradoException
+from excecoes import CPFException, CancelamentoException, DirecaoException, LugarNaoEncontradoException, ViagemException
 import geocoder
 import requests
 
@@ -12,7 +14,7 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome)
     try:
         g = geocoder.osm(enderecoOrigem)
         if g.ok is False:
-            raise LugarNaoEncontradoException(enderecoOrigem)
+            raise LugarNaoEncontradoException(lugar=enderecoOrigem)
         lonOrigem = g.osm['x']
         latOrigem = g.osm['y']
 
@@ -118,19 +120,63 @@ def viagens_proximas(carreteiro_id: int):
 
 
 def aceitar_viagem(carreteiro_id: int, viagem_id: int):
+    try:
+        viagem = Viagem.get_by_id(viagem_id)
+        if viagem.carreteiro is not None:
+            raise ViagemException(
+                codigo=400, message="Viagem já aceita por outro motorista")
+    except DoesNotExist:
+        raise ViagemException(codigo=404, message="Viagem inexistente")
+    except ViagemException as e:
+        raise e
+    try:
+        carreteiro = Carreteiro.get_by_id(carreteiro_id)
+        if carreteiro.tipo_veiculo != viagem.tipo_veiculo:
+            raise ViagemException(
+                codigo=400, message="Carreteiro com veículo incompatível")
+    except DoesNotExist:
+        raise ViagemException(codigo=404, message="Carreteiro não encontrado")
+    except ViagemException as e:
+        raise e
+
     cursor = db.execute_sql('with v as (UPDATE viagem SET carreteiro_id = %s WHERE id = %s returning *) \
         select v.preco, s.nome, s.telefone, o.rua as origem_rua, o.numero as origem_numero, \
         o.cidade as origem_cidade, d.rua as destino_rua, d.numero as destino_numero, \
         d.cidade as destino_cidade from v inner join solicitante s on s.id = v.solicitante_id \
         inner join endereco o ON o.id = v.origem_id inner join endereco d on d.id = v.destino_id',
                             (carreteiro_id, viagem_id))
+
     return cursor.fetchall()
 
 
 def cancelar_viagem_solicitante(solicitante_id: int, viagem_id: int):
+    try:
+        viagem = Viagem.get_by_id(viagem_id)
+    except DoesNotExist as e:
+        raise CancelamentoException(codigo=404, message="Viagem não existe")
+    try:
+        solicitante = Solicitante.get_by_id(solicitante_id)
+        if viagem.solicitante.id != solicitante.id:
+            raise CancelamentoException(
+                codigo=400, message="Viagem não pertence ao solicitante")
+    except (DoesNotExist, CancelamentoException):
+        raise CancelamentoException(
+            codigo=400, message="Viagem não pertence ao solicitante")
     Viagem.delete_by_id(viagem_id)
 
 
-def cancelar_viagem_carreteiro(solicitante_id: int, viagem_id: int):
+def cancelar_viagem_carreteiro(carreteiro_id: int, viagem_id: int):
+    try:
+        viagem = Viagem.get_by_id(viagem_id)
+    except DoesNotExist as e:
+        raise CancelamentoException(codigo=404, message="Viagem não existe")
+    try:
+        carreteiro = Carreteiro.get_by_id(carreteiro_id)
+        if viagem.carreteiro is None or viagem.carreteiro.id != carreteiro.id:
+            raise CancelamentoException(
+                codigo=400, message="Carreteiro não é motorista da viagem")
+    except (DoesNotExist, CancelamentoException):
+        raise CancelamentoException(
+            codigo=400, message="Carreteiro não é motorista da viagem")
     db.execute_sql(
         'UPDATE viagem SET carreteiro_id = NULL WHERE id = %s', [viagem_id])
