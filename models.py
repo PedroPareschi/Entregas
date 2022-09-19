@@ -1,9 +1,12 @@
+from dataclasses import dataclass
 from enum import unique
+import os
 from peewee import Model, CharField, ForeignKeyField, DoubleField, PostgresqlDatabase
 
 
-db = PostgresqlDatabase(database='truckdriver',
-                        user='postgres', password='1234', autorollback=True)
+db = PostgresqlDatabase(database=os.environ['database'],
+                        user=os.environ['user'], password=os.environ['password'],
+                        host=os.environ['host'], autorollback=True)
 
 
 class BaseModel(Model):

@@ -1,4 +1,5 @@
 from email import message
+import os
 from tkinter import E
 from peewee import DoesNotExist, IntegrityError
 from models import Carreteiro, Endereco, Solicitante, Viagem, db
@@ -28,7 +29,7 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome)
     except (ConnectionError, LugarNaoEncontradoException) as e:
         raise e
 
-    api_key = ''
+    api_key = os.environ['api-key']
 
     headers = {
         'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
