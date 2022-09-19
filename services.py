@@ -29,7 +29,7 @@ def simular_viagem(origem: EnderecoDTO, destino: EnderecoDTO, tipo_veiculo_nome)
     except (ConnectionError, LugarNaoEncontradoException) as e:
         raise e
 
-    api_key = os.environ['api-key']
+    api_key = os.environ['api_key']
 
     headers = {
         'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
