@@ -8,6 +8,7 @@ from excecoes import CPFException, CancelamentoException, DirecaoException, Luga
 from pydantic import BaseModel
 from peewee import DoesNotExist, IntegrityError
 import services
+from mangum import Mangum
 
 app = FastAPI()
 
@@ -154,3 +155,5 @@ def cancelar_viagem_carreteiro(carreteiro_id: int, viagem_id: int):
     except CancelamentoException as e:
         raise HTTPException(status_code=e.codigo, detail=e.message)
     return {'success': True}
+
+handler = Mangum(app, lifespan="off")
