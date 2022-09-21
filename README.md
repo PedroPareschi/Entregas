@@ -63,12 +63,4 @@ Solicitante cancela a viagem, apagando seu registro do banco de dados
 
 ### DELETE /carreteiro/{carreteiro_id}/viagens/{viagem_id}
 
-Carreteiro cancela viagem, e esta volta a ficar disponível para o públic
-
-## Como buildar localmente
-
-Python 3.9 e PostgreSQL instalados na máquina
-
-Rodar ```pip install -r requirements.txt```
-
-Para rodar fastapi, rodar comando ```uvicorn main:app --host 0.0.0.0 --port 80```
+Carreteiro cancela viagem, e esta volta a ficar disponível para o outros carreteiros  
